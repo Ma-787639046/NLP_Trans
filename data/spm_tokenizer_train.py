@@ -12,6 +12,7 @@ See: https://github.com/google/sentencepiece/tree/master/python
 
 """
 
+import os
 import sentencepiece as spm
 
 def train(input_file, vocab_size, model_prefix, model_type, character_coverage):
@@ -28,20 +29,22 @@ def train(input_file, vocab_size, model_prefix, model_type, character_coverage):
                                rich character set like Japanse or Chinese and 1.0 for other languages with
                                small character set.
     """
-    args =  f'input={input_file}, model_prefix={model_prefix}, vocab_size={vocab_size}, model_type={model_type}, '\
-            f'character_coverage={character_coverage}, pad_id=0, unk_id=1, bos_id=2, eos_id=3'
+    
+    os.chdir(os.path.dirname(__file__))
+    args =  f'--input={input_file} --model_prefix={model_prefix} --vocab_size={vocab_size} --model_type={model_type} '\
+            f'--character_coverage={character_coverage} --pad_id=0 --unk_id=1 --bos_id=2 --eos_id=3'
     spm.SentencePieceTrainer.Train(args)
 
 
 def run():
-    en_input = ['./corpus/test.en', './corpus/train.en', './corpus/valid.en']
+    en_input = './corpus/test.en,./corpus/train.en,./corpus/valid.en'
     en_vocab_size = 32000
     en_model_prefix = 'en'
     en_model_type = 'bpe'
     en_character_coverage = 1
     train(en_input, en_vocab_size, en_model_prefix, en_model_type, en_character_coverage)
 
-    ch_input = ['./corpus/test.zh', './corpus/train.zh', './corpus/valid.zh']
+    ch_input = './corpus/test.zh,./corpus/train.zh,./corpus/valid.zh'
     ch_vocab_size = 32000
     ch_model_prefix = 'ch'
     ch_model_type = 'bpe'
