@@ -30,7 +30,7 @@ def train(input_file, vocab_size, model_prefix, model_type, character_coverage):
                                small character set.
     """
     
-    os.chdir(os.path.dirname(__file__))
+    os.chdir(os.path.abspath('.'))
     args =  f'--input={input_file} --model_prefix={model_prefix} --vocab_size={vocab_size} --model_type={model_type} '\
             f'--character_coverage={character_coverage} --pad_id=0 --unk_id=1 --bos_id=2 --eos_id=3'
     spm.SentencePieceTrainer.Train(args)
