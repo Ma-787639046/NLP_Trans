@@ -64,6 +64,8 @@ class PositionalEncoding(nn.Module):
     def forward(self, x):
         # 将一个batch的句子所有词的embedding与已构建好的positional embeding相加
         # (这里按照该批次数据的最大句子长度来取对应需要的那些positional embedding值)
+        print(f"x.device= {x.device}")
+        print(f"self.pe.device= {self.pe.device}")
         x = x + Variable(self.pe[:, :x.size(1)], requires_grad=False)
         return self.dropout(x)
 
