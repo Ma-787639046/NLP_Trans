@@ -56,7 +56,7 @@ class PositionalEncoding(nn.Module):
 
         # 加1个维度，使得pe维度变为：1×max_len×embedding维度
         # (方便后续与一个batch的句子所有词的embedding批量相加)
-        self.pe = self.pe.unsqueeze(0)
+        self.pe.data = self.pe.unsqueeze(0)
         # 将pe矩阵以持久的buffer状态存下(不会作为要训练的参数)
         # self.register_buffer('pe', self.pe)
 
