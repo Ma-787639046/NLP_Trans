@@ -58,7 +58,8 @@ class PositionalEncoding(nn.Module):
         # (方便后续与一个batch的句子所有词的embedding批量相加)
         self.pe = self.pe.unsqueeze(0)
         # 将pe矩阵以持久的buffer状态存下(不会作为要训练的参数)
-        self.register_buffer('pe', self.pe)
+        self.pe.requires_grad = False
+        # self.register_buffer('pe', self.pe)
 
     def forward(self, x):
         # 将一个batch的句子所有词的embedding与已构建好的positional embeding相加
