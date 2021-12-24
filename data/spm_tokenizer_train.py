@@ -8,7 +8,7 @@ Generate corpus.en & corpus.zh SentencePiece models for Tokenizing Usage
 See: https://github.com/google/sentencepiece/tree/master/python
 
 @author: Ma (Ma787639046@outlook.com)
-@data: 2020/12/22
+@data: 2020/12/23
 
 """
 
