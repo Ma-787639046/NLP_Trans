@@ -38,3 +38,5 @@ output_path = './output/output.txt'
 n_gpu = 8
 n_node = 1
 node_rank = 0
+MASTER_ADDR='10.104.91.31'
+MASTER_PORT='29501'

@@ -9,7 +9,7 @@ Thanks to Harvard Annoated Transformer in http://nlp.seas.harvard.edu/2018/04/03
 
 """
 import torch.nn as nn
-from .transformers_utils import copy, MultiHeadedAttention, PositionalEncoding, PositionwiseFeedForward, Embeddings, Transformer, Encoder, EncoderLayer, Decoder, DecoderLayer, Generator
+from transformers_utils import copy, MultiHeadedAttention, PositionalEncoding, PositionwiseFeedForward, Embeddings, Transformer, Encoder, EncoderLayer, Decoder, DecoderLayer, Generator
 
 def transformer_encoder_decoder_model(src_vocab, tgt_vocab, N=6, d_model=512, d_ff=2048, h=8, dropout=0.1):
     c = copy.deepcopy

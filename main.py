@@ -8,7 +8,7 @@ Thanks to Harvard Annoated Transformer in http://nlp.seas.harvard.edu/2018/04/03
 @data: 2020/12/24
 
 """
-
+import os
 import utils
 import config
 import logging
@@ -23,7 +23,7 @@ import torch.distributed as dist
 from torch.nn.parallel import DistributedDataParallel as DDP
 from torch.utils.tensorboard import SummaryWriter
 
-from trainer import train, test
+from trainer import train
 from preprocessing import MTDataset, english_tokenizer_load
 from model import transformer_encoder_decoder_model
 
@@ -117,5 +117,9 @@ def run(rank):
 if __name__ == "__main__":
     # import warnings
     # warnings.filterwarnings('ignore')
-    mp.spawn(run(), args=(), nprocs=config.n_gpu)
+
+    os.environ['MASTER_ADDR'] = config.MASTER_ADDR
+    os.environ['MASTER_PORT'] = config.MASTER_PORT
+
+    mp.spawn(run, nprocs=config.n_gpu)
     # translate_example()
