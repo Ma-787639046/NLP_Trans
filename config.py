@@ -12,8 +12,8 @@ bos_idx = 2
 eos_idx = 3
 src_vocab_size = 32000
 tgt_vocab_size = 32000
-batch_size = 16
-epoch_num = 40
+batch_size = 10
+epoch_num = 20
 early_stop = 5
 lr = 3e-4
 
