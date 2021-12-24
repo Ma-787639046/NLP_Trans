@@ -69,7 +69,7 @@ class Batch:
 
 class MTDataset(Dataset):
     def __init__(self, ch_data_path, en_data_path, rank=None):
-        self.en_sent, self.cn_sent = self.get_dataset(ch_data_path, en_data_path, sort=True)
+        self.en_sent, self.cn_sent = self.get_dataset(ch_data_path, en_data_path, sort=False)   # 原本sort=True
         self.sp_en = english_tokenizer_load()
         self.sp_ch = chinese_tokenizer_load()
         self.PAD = self.sp_en.pad_id()  # 0
