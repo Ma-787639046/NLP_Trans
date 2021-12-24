@@ -50,6 +50,9 @@ def train(train_dataloader, dev_dataloader, model, criterion, optimizer, schedul
             logging.info(f"[Epoch {epoch}] Trainging...")
         model.train()
         train_loss = run_epoch(train_dataloader, model, criterion, optimizer, scheduler)
+
+        dist.barrier()  # synchronizes all processes
+        
         # 计算bleu分数
         if global_rank == 0:
             with torch.no_grad():
