@@ -47,7 +47,7 @@ def run(rank):
 
     sampler = DistributedSampler(train_dataset, num_replicas=world_size, rank=rank)
 
-    train_dataloader = DataLoader(train_dataset, shuffle=True, batch_size=config.batch_size,
+    train_dataloader = DataLoader(train_dataset, shuffle=False, batch_size=config.batch_size,
                                   collate_fn=train_dataset.collate_fn, sampler=sampler)
     dev_dataloader = DataLoader(dev_dataset, shuffle=False, batch_size=config.batch_size,
                                 collate_fn=dev_dataset.collate_fn)
