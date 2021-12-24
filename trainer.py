@@ -9,6 +9,7 @@ Thanks to Harvard Annoated Transformer in http://nlp.seas.harvard.edu/2018/04/03
 
 """
 import torch
+import torch.distributed as dist
 import logging
 import sacrebleu
 from tqdm import tqdm
@@ -51,23 +52,25 @@ def train(train_dataloader, dev_dataloader, model, criterion, optimizer, schedul
         train_loss = run_epoch(train_dataloader, model, criterion, optimizer, scheduler)
         # 计算bleu分数
         if global_rank == 0:
-            logging.info(f"[Epoch {epoch}] Validating...")
-            model.eval()
-            bleu_score = evaluate(dev_dataloader, model)
-            logging.info(f'Epoch: {epoch:2d}, loss: {train_loss:.3f}, Bleu Score: {bleu_score}')
+            with torch.no_grad():
+                logging.info(f"[Epoch {epoch}] Validating...")
+                model.eval()
+                bleu_score = evaluate(dev_dataloader, model)
+                logging.info(f'Epoch: {epoch:2d}, loss: {train_loss:.3f}, Bleu Score: {bleu_score}')
 
-            # 基于bleu分数，设置early stop
-            if bleu_score > best_bleu_score:
-                torch.save(model.state_dict(), config.model_path)
-                best_bleu_score = bleu_score
-                early_stop = config.early_stop
-                logging.info("-------- Save Best Model! --------")
-            else:
-                early_stop -= 1
-                logging.info("Early Stop Left: {}".format(early_stop))
-            if early_stop == 0:
-                logging.info("-------- Early Stop! --------")
-                break
+                # 基于bleu分数，设置early stop
+                if bleu_score > best_bleu_score:
+                    torch.save(model.state_dict(), config.model_path)
+                    best_bleu_score = bleu_score
+                    early_stop = config.early_stop
+                    logging.info("-------- Save Best Model! --------")
+                else:
+                    early_stop -= 1
+                    logging.info("Early Stop Left: {}".format(early_stop))
+                if early_stop == 0:
+                    logging.info("-------- Early Stop! --------")
+                    break
+        dist.barrier()  # synchronizes all processes
 
 def evaluate(data, model, mode='dev'):
     """在data上用训练好的模型进行预测，打印模型翻译结果"""
