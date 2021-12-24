@@ -39,9 +39,9 @@ def run(rank):
         world_size=world_size,
         rank=global_rank)
 
-    train_dataset = MTDataset(ch_data_path=config.train_ch_data_path, en_data_path=config.train_en_data_path)
-    dev_dataset = MTDataset(ch_data_path=config.dev_ch_data_path, en_data_path=config.dev_en_data_path)
-    test_dataset = MTDataset(ch_data_path=config.test_ch_data_path, en_data_path=config.test_en_data_path)
+    train_dataset = MTDataset(ch_data_path=config.train_ch_data_path, en_data_path=config.train_en_data_path, rank=rank)
+    dev_dataset = MTDataset(ch_data_path=config.dev_ch_data_path, en_data_path=config.dev_en_data_path, rank=rank)
+    test_dataset = MTDataset(ch_data_path=config.test_ch_data_path, en_data_path=config.test_en_data_path, rank=rank)
     if rank == 0: 
         logging.info("-------- Dataset Build! --------")
 

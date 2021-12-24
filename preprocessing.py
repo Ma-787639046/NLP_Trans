@@ -68,13 +68,14 @@ class Batch:
 
 
 class MTDataset(Dataset):
-    def __init__(self, ch_data_path, en_data_path):
+    def __init__(self, ch_data_path, en_data_path, rank=None):
         self.en_sent, self.cn_sent = self.get_dataset(ch_data_path, en_data_path, sort=True)
         self.sp_en = english_tokenizer_load()
         self.sp_ch = chinese_tokenizer_load()
         self.PAD = self.sp_en.pad_id()  # 0
         self.BOS = self.sp_en.bos_id()  # 2
         self.EOS = self.sp_en.eos_id()  # 3
+        self.rank = rank
 
     @staticmethod
     def len_argsort(seq): # 传入句子列表(分好词的二维列表)，按照句子长度排序后，返回排序后原来各句子在数据中的索引下标
@@ -106,8 +107,6 @@ class MTDataset(Dataset):
         return len(self.en_sent)
 
     def collate_fn(self, batch):
-        gpu_id = config.gpu_id
-        
         src_text = [x[0] for x in batch]    # en_text
         tgt_text = [x[1] for x in batch]    # cn_text
 
@@ -120,8 +119,8 @@ class MTDataset(Dataset):
                                    batch_first=True, padding_value=self.PAD)
         tgt_pad = pad_sequence([torch.LongTensor(np.array(l_)) for l_ in tgt_tokens],
                                     batch_first=True, padding_value=self.PAD)
-        if gpu_id != None:
-            src_pad = src_pad.to(gpu_id)
-            tgt_pad = tgt_pad.to(gpu_id)
+        if self.rank != None:
+            src_pad = src_pad.to(self.rank)
+            tgt_pad = tgt_pad.to(self.rank)
 
         return Batch(src_text, tgt_text, src_pad, tgt_pad, self.PAD)
