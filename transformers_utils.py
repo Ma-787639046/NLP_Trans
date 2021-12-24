@@ -35,7 +35,7 @@ class PositionalEncoding(nn.Module):
 
         # 初始化一个size为 max_len(设定的最大长度)×embedding维度 的全零矩阵
         # 来存放所有小于这个长度位置对应的positional embedding
-        self.pe = torch.zeros(max_len, d_model)
+        self.pe = nn.Parameter(torch.zeros(max_len, d_model), requires_grad = False)
         # 生成一个位置下标的tensor矩阵(每一行都是一个位置下标)
         """
         形式如:
@@ -58,7 +58,6 @@ class PositionalEncoding(nn.Module):
         # (方便后续与一个batch的句子所有词的embedding批量相加)
         self.pe = self.pe.unsqueeze(0)
         # 将pe矩阵以持久的buffer状态存下(不会作为要训练的参数)
-        self.pe.requires_grad = False
         # self.register_buffer('pe', self.pe)
 
     def forward(self, x):
@@ -66,7 +65,7 @@ class PositionalEncoding(nn.Module):
         # (这里按照该批次数据的最大句子长度来取对应需要的那些positional embedding值)
         print(f"x.device= {x.device}")
         print(f"self.pe.device= {self.pe.device}")
-        x = x + Variable(self.pe[:, :x.size(1)], requires_grad=False)
+        x = x + nn.Parameter(self.pe[:, :x.size(1)], requires_grad=False)
         return self.dropout(x)
 
 
