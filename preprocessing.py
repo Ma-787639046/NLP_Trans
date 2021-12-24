@@ -8,6 +8,7 @@ Thanks to Harvard Annoated Transformer in http://nlp.seas.harvard.edu/2018/04/03
 @data: 2020/12/24
 
 """
+import logging
 import torch
 import numpy as np
 from torch.autograd import Variable
@@ -17,10 +18,16 @@ import sentencepiece as spm
 import config
 
 def chinese_tokenizer_load():
-    return spm.SentencePieceProcessor().Load('./data/ch.model')
+    sp_ch = spm.SentencePieceProcessor()
+    sp_ch.Load('./data/ch.model')
+    logging.info(f'SentencePiece loaded at ./data/ch.model')
+    return sp_ch
 
 def english_tokenizer_load():
-    return spm.SentencePieceProcessor().Load('./data/ch.model')
+    sp_en = spm.SentencePieceProcessor()
+    sp_en.Load('./data/en.model')
+    logging.info(f'SentencePiece loaded at ./data/en.model')
+    return sp_en
 
 def subsequent_mask(size):  # 生成下三角布尔矩阵
     """Mask out subsequent positions."""
