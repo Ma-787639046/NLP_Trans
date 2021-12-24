@@ -82,7 +82,7 @@ def evaluate(data, model, mode='dev'):
             src_mask = (batch.src != 0).unsqueeze(-2)
             decode_result, _ = beam_search(model.module, batch.src, src_mask, config.max_len,
                                             config.padding_idx, config.bos_idx, config.eos_idx,
-                                            config.beam_size, config.device)
+                                            config.beam_size, "cuda:0")
             decode_result = [h[0] for h in decode_result]
             translation = [sp_chn.decode_ids(_s) for _s in decode_result]
             src.append(en_text)
