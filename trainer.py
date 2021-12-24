@@ -32,7 +32,7 @@ def run_epoch(dataloader, model, criterion, optimizer=None, scheduler=None):
             optimizer.zero_grad()
             scheduler.step()
         
-        total_loss += loss.data.item() * batch.ntokens.float()
+        total_loss += loss.item() * batch.ntokens.float()
         total_tokens += batch.ntokens
     return total_loss / total_tokens
 
