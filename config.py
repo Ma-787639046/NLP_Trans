@@ -21,10 +21,8 @@ lr = 3e-4
 max_len = 60
 # beam size for bleu
 beam_size = 3
-# Label Smoothing
-use_smoothing = False
-# NoamOpt
-use_noamopt = True
+# Warmup proportion
+warmup_proportion = 0.1
 
 data_dir = './data'
 train_ch_data_path = './data/corpus/train.zh'
@@ -37,4 +35,6 @@ model_path = './output/model.pth'
 log_path = './output/train.log'
 output_path = './output/output.txt'
 
-device_id = [0, 1, 2 ,3, 4, 5, 6, 7, 8]
+n_gpu = 8
+n_node = 1
+node_rank = 0

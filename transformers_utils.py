@@ -15,31 +15,6 @@ from torch.autograd import Variable
 import math
 import copy
 
-class LabelSmoothing(nn.Module):
-    """Implement label smoothing."""
-
-    def __init__(self, size, padding_idx, smoothing=0.0):
-        super(LabelSmoothing, self).__init__()
-        self.criterion = nn.KLDivLoss(size_average=False)
-        self.padding_idx = padding_idx
-        self.confidence = 1.0 - smoothing
-        self.smoothing = smoothing
-        self.size = size
-        self.true_dist = None
-
-    def forward(self, x, target):
-        assert x.size(1) == self.size
-        true_dist = x.data.clone()
-        true_dist.fill_(self.smoothing / (self.size - 2))
-        true_dist.scatter_(1, target.data.unsqueeze(1), self.confidence)
-        true_dist[:, self.padding_idx] = 0
-        mask = torch.nonzero(target.data == self.padding_idx)
-        if mask.dim() > 0:
-            true_dist.index_fill_(0, mask.squeeze(), 0.0)
-        self.true_dist = true_dist
-        return self.criterion(x, Variable(true_dist, requires_grad=False))
-
-
 class Embeddings(nn.Module):
     def __init__(self, d_model, vocab):
         super(Embeddings, self).__init__()
@@ -54,15 +29,13 @@ class Embeddings(nn.Module):
 
 
 class PositionalEncoding(nn.Module):
-    def __init__(self, d_model, dropout, max_len=5000, gpu_id=0):
+    def __init__(self, d_model, dropout, max_len=5000):
         super(PositionalEncoding, self).__init__()
         self.dropout = nn.Dropout(p=dropout)
 
         # 初始化一个size为 max_len(设定的最大长度)×embedding维度 的全零矩阵
         # 来存放所有小于这个长度位置对应的positional embedding
-        pe = torch.zeros(max_len, d_model)
-        if gpu_id is not None:
-            pe.to(gpu_id)
+        self.pe = torch.zeros(max_len, d_model)
         # 生成一个位置下标的tensor矩阵(每一行都是一个位置下标)
         """
         形式如:
@@ -73,24 +46,19 @@ class PositionalEncoding(nn.Module):
                 [4.],
                 ...])
         """
-        if gpu_id is not None:
-            position = torch.arange(0., max_len, device=gpu_id).unsqueeze(1)
-            # 这里幂运算太多，我们使用exp和log来转换实现公式中pos下面要除以的分母（由于是分母，要注意带负号）
-            div_term = torch.exp(torch.arange(0., d_model, 2, device=gpu_id) * -(math.log(10000.0) / d_model))
-        else:
-            position = torch.arange(0., max_len).unsqueeze(1)
-            # 这里幂运算太多，我们使用exp和log来转换实现公式中pos下面要除以的分母（由于是分母，要注意带负号）
-            div_term = torch.exp(torch.arange(0., d_model, 2) * -(math.log(10000.0) / d_model))
+        self.position = torch.arange(0., max_len).unsqueeze(1)
+        # 这里幂运算太多，我们使用exp和log来转换实现公式中pos下面要除以的分母（由于是分母，要注意带负号）
+        self.div_term = torch.exp(torch.arange(0., d_model, 2) * -(math.log(10000.0) / d_model))
 
         # 根据公式，计算各个位置在各embedding维度上的位置纹理值，存放到pe矩阵中
-        pe[:, 0::2] = torch.sin(position * div_term)
-        pe[:, 1::2] = torch.cos(position * div_term)
+        self.pe[:, 0::2] = torch.sin(self.position * self.div_term)
+        self.pe[:, 1::2] = torch.cos(self.position * self.div_term)
 
         # 加1个维度，使得pe维度变为：1×max_len×embedding维度
         # (方便后续与一个batch的句子所有词的embedding批量相加)
-        pe = pe.unsqueeze(0)
+        self.pe = self.pe.unsqueeze(0)
         # 将pe矩阵以持久的buffer状态存下(不会作为要训练的参数)
-        self.register_buffer('pe', pe)
+        self.register_buffer('pe', self.pe)
 
     def forward(self, x):
         # 将一个batch的句子所有词的embedding与已构建好的positional embeding相加
@@ -307,5 +275,7 @@ class Transformer(nn.Module):
 
     def forward(self, src, tgt, src_mask, tgt_mask):
         # encoder的结果作为decoder的memory参数传入，进行decode
-        return self.decode(self.encode(src, src_mask), src_mask, tgt, tgt_mask)
+        decode_out = self.decode(self.encode(src, src_mask), src_mask, tgt, tgt_mask)
+        # 返回对decoder数据进行log_softmax后的值，长度为vocab词典大小
+        return self.generator(decode_out)
 

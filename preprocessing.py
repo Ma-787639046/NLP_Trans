@@ -14,6 +14,7 @@ from torch.autograd import Variable
 from torch.utils.data import Dataset
 from torch.nn.utils.rnn import pad_sequence
 import sentencepiece as spm
+import config
 
 def chinese_tokenizer_load():
     return spm.SentencePieceProcessor().Load('./data/ch.model')
@@ -97,7 +98,9 @@ class MTDataset(Dataset):
     def __len__(self):
         return len(self.en_sent)
 
-    def collate_fn(self, batch, gpu_id=0):
+    def collate_fn(self, batch):
+        gpu_id = config.gpu_id
+        
         src_text = [x[0] for x in batch]    # en_text
         tgt_text = [x[1] for x in batch]    # cn_text
 
