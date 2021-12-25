@@ -149,7 +149,7 @@ if __name__ == "__main__":
     parser.add_argument("--output_path", type=str, default='./output/output.txt', \
                         help="test predict file path")
     """ train hypermeter related """
-    parser.add_argument("--batch_size", type=int, default=16, help="Dataloader batch size")
+    parser.add_argument("--batch_size", type=int, default=14, help="Dataloader batch size")
     parser.add_argument("--epoch_num", type=int, default=40, help="Number of epochs")
     parser.add_argument("--lr", type=float, default=3e-4, help="learning rate")
     # parser.add_argument("--seed", type=int, default=42, help='Seed for random init')
