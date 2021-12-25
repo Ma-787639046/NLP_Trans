@@ -10,8 +10,8 @@ Thanks to Harvard Annoated Transformer in http://nlp.seas.harvard.edu/2018/04/03
 """
 import os
 import utils
-import config
 import logging
+from argparse import ArgumentParser
 import numpy as np
 
 import torch
@@ -27,13 +27,14 @@ from trainer import train, test
 from preprocessing import MTDataset, english_tokenizer_load
 from model import transformer_encoder_decoder_model
 
-def run(rank):
-    utils.set_logger(config.log_path)
-    world_size = config.n_gpu * config.n_node
-    global_rank = config.node_rank * config.n_gpu + rank
+def run(rank, *tuples):
+    args = tuples[0]    # mp.spawm() pass a tuple (args, ) to train() function, so args = tuples[0]
+    utils.set_logger(args.log_path)
+    world_size = args.n_gpu * args.n_node
+    global_rank = args.node_rank * args.n_gpu + rank
     if rank == 0:
-        if not os.path.exists(config.temp_dir):
-            os.makedirs(config.temp_dir)
+        if not os.path.exists(args.temp_dir):
+            os.makedirs(args.temp_dir)
     # preparing the distributed env
     # using nccl for distributed training
     dist.init_process_group(
@@ -42,28 +43,28 @@ def run(rank):
         world_size=world_size,
         rank=global_rank)
 
-    train_dataset = MTDataset(ch_data_path=config.train_ch_data_path, en_data_path=config.train_en_data_path, rank=rank)
-    dev_dataset = MTDataset(ch_data_path=config.dev_ch_data_path, en_data_path=config.dev_en_data_path, rank=rank)
-    test_dataset = MTDataset(ch_data_path=config.test_ch_data_path, en_data_path=config.test_en_data_path, rank=rank)
+    train_dataset = MTDataset(ch_data_path=args.train_ch_data_path, en_data_path=args.train_en_data_path, rank=rank)
+    dev_dataset = MTDataset(ch_data_path=args.dev_ch_data_path, en_data_path=args.dev_en_data_path, rank=rank)
+    test_dataset = MTDataset(ch_data_path=args.test_ch_data_path, en_data_path=args.test_en_data_path, rank=rank)
     if rank == 0: 
         logging.info("-------- Dataset Build! --------")
 
-    sampler_train = DistributedSampler(train_dataset, num_replicas=world_size, rank=rank)
-    sampler_dev = DistributedSampler(dev_dataset, num_replicas=world_size, rank=rank)
-    sampler_test = DistributedSampler(test_dataset, num_replicas=world_size, rank=rank)
+    sampler_train = DistributedSampler(train_dataset, num_replicas=world_size, rank=global_rank)
+    sampler_dev = DistributedSampler(dev_dataset, num_replicas=world_size, rank=global_rank)
+    sampler_test = DistributedSampler(test_dataset, num_replicas=world_size, rank=global_rank)
 
-    train_dataloader = DataLoader(train_dataset, shuffle=False, batch_size=config.batch_size,
+    train_dataloader = DataLoader(train_dataset, shuffle=False, batch_size=args.batch_size,
                                   collate_fn=train_dataset.collate_fn, sampler=sampler_train)
-    dev_dataloader = DataLoader(dev_dataset, shuffle=False, batch_size=config.batch_size,
+    dev_dataloader = DataLoader(dev_dataset, shuffle=False, batch_size=args.batch_size,
                                 collate_fn=dev_dataset.collate_fn, sampler=sampler_dev)
-    test_dataloader = DataLoader(test_dataset, shuffle=False, batch_size=config.batch_size,
+    test_dataloader = DataLoader(test_dataset, shuffle=False, batch_size=args.batch_size,
                                  collate_fn=test_dataset.collate_fn, sampler=sampler_test)
     if rank == 0: 
         logging.info("-------- Get Dataloader! --------")
 
     # 初始化模型
-    model = transformer_encoder_decoder_model(config.src_vocab_size, config.tgt_vocab_size, config.n_layers,
-                       config.d_model, config.d_ff, config.n_heads, config.dropout)
+    model = transformer_encoder_decoder_model(args.src_vocab_size, args.tgt_vocab_size, args.n_layers,
+                       args.d_model, args.d_ff, args.n_heads, args.dropout)
     if torch.cuda.is_available():    # Move model to GPU:rank
         model.cuda(rank)
 
@@ -82,31 +83,31 @@ def run(rank):
         logging.info("Finish initing all processors.")
 
     # 训练
-    total_steps = 1.0 * len(train_dataloader) * config.epoch_num
-    warmup_steps = config.warmup_proportion * total_steps
+    total_steps = 1.0 * len(train_dataloader) * args.epoch_num
+    warmup_steps = args.warmup_proportion * total_steps
     logging.info(f"Scheduler: total_steps:{total_steps}, warmup_steps:{warmup_steps}")
 
     criterion = torch.nn.CrossEntropyLoss(ignore_index=0, reduction='sum')
-    optimizer = torch.optim.Adam(model.parameters(), lr=config.lr, betas=(0.9, 0.98), eps=1e-9)
+    optimizer = torch.optim.Adam(model.parameters(), lr=args.lr, betas=(0.9, 0.98), eps=1e-9)
     scheduler = get_polynomial_decay_schedule_with_warmup(
         optimizer,
         warmup_steps,
         total_steps
     )
 
-    train(train_dataloader, dev_dataloader, model, criterion, optimizer, scheduler, rank)
-    # test(test_dataloader, model, rank)
+    train(train_dataloader, dev_dataloader, model, criterion, optimizer, scheduler, rank, args)
+    # test(test_dataloader, model, rank, args)
     dist.destroy_process_group()
 
 
 # def one_sentence_translate(sent, beam_search=True):
 #     # 初始化模型
-#     model = transformer_encoder_decoder_model(config.src_vocab_size, config.tgt_vocab_size, config.n_layers,
-#                        config.d_model, config.d_ff, config.n_heads, config.dropout)
+#     model = transformer_encoder_decoder_model(args.src_vocab_size, args.tgt_vocab_size, args.n_layers,
+#                        args.d_model, args.d_ff, args.n_heads, args.dropout)
 #     BOS = english_tokenizer_load().bos_id()  # 2
 #     EOS = english_tokenizer_load().eos_id()  # 3
 #     src_tokens = [[BOS] + english_tokenizer_load().EncodeAsIds(sent) + [EOS]]
-#     batch_input = torch.LongTensor(np.array(src_tokens)).to(config.device)
+#     batch_input = torch.LongTensor(np.array(src_tokens)).to(args.device)
 #     translate(batch_input, model, use_beam=beam_search)
 
 
@@ -123,8 +124,68 @@ if __name__ == "__main__":
     # import warnings
     # warnings.filterwarnings('ignore')
 
-    os.environ['MASTER_ADDR'] = config.MASTER_ADDR
-    os.environ['MASTER_PORT'] = config.MASTER_PORT
+    parser = ArgumentParser()
+    """ file path related """
+    parser.add_argument("--data_dir", type=str, default='./data', \
+                        help="Path to sentence piece model & vocab dir")
+    parser.add_argument("--train_ch_data_path", type=str, default='./data/corpus/train.zh', \
+                        help="training data file path")
+    parser.add_argument("--train_en_data_path", type=str, default='./data/corpus/train.en', \
+                        help="training data file path")
+    parser.add_argument("--test_ch_data_path", type=str, default='./data/corpus/test.zh', \
+                        help="test data file path")
+    parser.add_argument("--test_en_data_path", type=str, default='./data/corpus/test.en', \
+                        help="test data file path")
+    parser.add_argument("--dev_ch_data_path", type=str, default='./data/corpus/valid.zh', \
+                        help="dev data file path")
+    parser.add_argument("--dev_en_data_path", type=str, default='./data/corpus/valid.en', \
+                        help="dev data file path")
+    parser.add_argument("--model_path", type=str, default='./output/model.pth', \
+                        help="model save path")
+    parser.add_argument("--temp_dir", type=str, default='./output/temp', \
+                        help="temp data dir path")
+    parser.add_argument("--log_path", type=str, default='./output/train.log', \
+                        help="log save path")
+    parser.add_argument("--output_path", type=str, default='./output/output.txt', \
+                        help="test predict file path")
+    # train hypermeter related
+    parser.add_argument("--batch_size", type=int, default=10, help="Dataloader batch size")
+    parser.add_argument("--epoch_num", type=int, default=40, help="Number of epochs")
+    parser.add_argument("--lr", type=float, default=3e-4, help="learning rate")
+    # parser.add_argument("--seed", type=int, default=42, help='Seed for random init')
+    parser.add_argument("--continue_training", type=bool, default=False, \
+                        help="Whether to continue Training")
+    parser.add_argument("--warmup_proportion", type=float, default=0.1, \
+                        help="Warmup proportion")
+    parser.add_argument("--beam_size", type=int, default=3, \
+                        help="beam size for decode")
+    # parser.add_argument("--max_len", type=int, default=60, \
+    #                     help="max_len of greedy decode")
+    """ Transformer encoder-decoder design related """
+    parser.add_argument("--d_model", type=int, default=512, help="")
+    parser.add_argument("--n_heads", type=int, default=8, help="")
+    parser.add_argument("--n_layers", type=int, default=6, help="")
+    parser.add_argument("--d_k", type=int, default=64, help="")
+    parser.add_argument("--d_v", type=int, default=64, help="")
+    parser.add_argument("--d_ff", type=int, default=2048, help="")
+    parser.add_argument("--dropout", type=float, default=0.1, help="")
+    parser.add_argument("--padding_idx", type=int, default=0, help="")
+    parser.add_argument("--bos_idx", type=int, default=2, help="")
+    parser.add_argument("--eos_idx", type=int, default=3, help="")
+    parser.add_argument("--src_vocab_size", type=int, default=32000, help="")
+    parser.add_argument("--tgt_vocab_size", type=int, default=32000, help="")
+    """ Distributed Training args """
+    parser.add_argument("--n_gpu", type=int, default=8, help='Number of GPUs in one node')
+    parser.add_argument("--n_node", type=int, default=2, help='Number of nodes in total')
+    parser.add_argument("--node_rank", type=int, default=0, help='Node rank for this machine. 0 for master, and 1,2... for slaves')
+    parser.add_argument("--MASTER_ADDR", type=str, default='10.104.91.31', help='Master Address')
+    parser.add_argument("--MASTER_PORT", type=str, default='29501', help='Master port')
 
-    mp.spawn(run, nprocs=config.n_gpu)
+    args = parser.parse_args()
+    print(args)
+
+    os.environ['MASTER_ADDR'] = args.MASTER_ADDR
+    os.environ['MASTER_PORT'] = args.MASTER_PORT
+
+    mp.spawn(run, args=(args, ), nprocs=args.n_gpu)
     # translate_example()

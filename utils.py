@@ -25,14 +25,14 @@ def set_logger(log_path):
     Args:
         log_path: (string) file path to where to log
     """
-    # if os.path.exists(log_path) is True:
-    #     os.remove(log_path)
+    if os.path.exists(log_path):
+        os.remove(log_path)
     logger = logging.getLogger()
     logger.setLevel(logging.INFO)
 
     if not logger.handlers:
         # Logging to a file
-        file_handler = logging.FileHandler(log_path, mode='w')
+        file_handler = logging.FileHandler(log_path)
         file_handler.setFormatter(logging.Formatter('[%(levelname)s] %(asctime)s : %(message)s'))
         logger.addHandler(file_handler)
 

@@ -15,7 +15,6 @@ from torch.autograd import Variable
 from torch.utils.data import Dataset
 from torch.nn.utils.rnn import pad_sequence
 import sentencepiece as spm
-import config
 
 def chinese_tokenizer_load():
     sp_ch = spm.SentencePieceProcessor()
