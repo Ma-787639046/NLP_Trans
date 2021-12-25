@@ -148,8 +148,8 @@ if __name__ == "__main__":
                         help="log save path")
     parser.add_argument("--output_path", type=str, default='./output/output.txt', \
                         help="test predict file path")
-    # train hypermeter related
-    parser.add_argument("--batch_size", type=int, default=10, help="Dataloader batch size")
+    """ train hypermeter related """
+    parser.add_argument("--batch_size", type=int, default=16, help="Dataloader batch size")
     parser.add_argument("--epoch_num", type=int, default=40, help="Number of epochs")
     parser.add_argument("--lr", type=float, default=3e-4, help="learning rate")
     # parser.add_argument("--seed", type=int, default=42, help='Seed for random init')
@@ -159,8 +159,8 @@ if __name__ == "__main__":
                         help="Warmup proportion")
     parser.add_argument("--beam_size", type=int, default=3, \
                         help="beam size for decode")
-    # parser.add_argument("--max_len", type=int, default=60, \
-    #                     help="max_len of greedy decode")
+    parser.add_argument("--max_len", type=int, default=60, \
+                        help="max_len for decode")
     """ Transformer encoder-decoder design related """
     parser.add_argument("--d_model", type=int, default=512, help="")
     parser.add_argument("--n_heads", type=int, default=8, help="")
