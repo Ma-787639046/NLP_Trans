@@ -43,8 +43,7 @@ def train(train_dataloader, dev_dataloader, model, criterion, optimizer, schedul
     global_rank = args.node_rank * args.n_gpu + local_rank
     if local_rank == 0:
         logging.info("------ Start Training! ------")
-    # best_bleu_score = 0.0
-    # early_stop = args.early_stop
+    best_bleu_score = 0.0
     loss = []
     if args.continue_training:
         checkpoint = torch.load(args.model_path)
@@ -91,6 +90,16 @@ def train(train_dataloader, dev_dataloader, model, criterion, optimizer, schedul
                     "scheduler": scheduler.state_dict()
                 }, args.model_path)
                 logging.info(f"[Epoch {epoch}] Module saved!")
+                if float(bleu_score.score) > best_bleu_score:
+                    best_bleu_score = float(bleu_score.score)
+                    torch.save({
+                        "epoch": epoch,
+                        "loss": loss,
+                        "model": model.state_dict(),
+                        "optimizer": optimizer.state_dict(),
+                        "scheduler": scheduler.state_dict()
+                    }, args.model_path_best)
+                    logging.info(f"Best Module in [Epoch {epoch}] saved!")
 
         dist.barrier()  # synchronizes all processes
 

@@ -142,6 +142,8 @@ if __name__ == "__main__":
                         help="dev data file path")
     parser.add_argument("--model_path", type=str, default='./output/model.pth', \
                         help="model save path")
+    parser.add_argument("--model_path_best", type=str, default='./output/model_best.pth', \
+                        help="best model save path")
     parser.add_argument("--temp_dir", type=str, default='./output/temp', \
                         help="temp data dir path")
     parser.add_argument("--log_path", type=str, default='./output/train.log', \
