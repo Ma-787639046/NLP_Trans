@@ -29,10 +29,10 @@ from model import transformer_encoder_decoder_model
 
 def run(rank, *tuples):
     args = tuples[0]    # mp.spawm() pass a tuple (args, ) to train() function, so args = tuples[0]
-    utils.set_logger(args.log_path)
     world_size = args.n_gpu * args.n_node
     global_rank = args.node_rank * args.n_gpu + rank
-    if rank == 0:
+    if global_rank == 0:
+        utils.set_logger(args.log_path)
         if not os.path.exists(args.temp_dir):
             os.makedirs(args.temp_dir)
     # preparing the distributed env
@@ -47,7 +47,7 @@ def run(rank, *tuples):
     dev_dataset = MTDataset(ch_data_path=args.dev_ch_data_path, en_data_path=args.dev_en_data_path, rank=rank)
     test_dataset = MTDataset(ch_data_path=args.test_ch_data_path, en_data_path=args.test_en_data_path, rank=rank)
     if rank == 0: 
-        logging.info("-------- Dataset Build! --------")
+        logging.info(f"-------- Dataset Build! --------")
 
     sampler_train = DistributedSampler(train_dataset, num_replicas=world_size, rank=global_rank)
     sampler_dev = DistributedSampler(dev_dataset, num_replicas=world_size, rank=global_rank)
