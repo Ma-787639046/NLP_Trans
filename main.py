@@ -31,6 +31,9 @@ def run(rank):
     utils.set_logger(config.log_path)
     world_size = config.n_gpu * config.n_node
     global_rank = config.node_rank * config.n_gpu + rank
+    if rank == 0:
+        if not os.path.exists(config.dev_dir):
+            os.makedirs(config.dev_dir)
     # preparing the distributed env
     # using nccl for distributed training
     dist.init_process_group(
@@ -50,9 +53,9 @@ def run(rank):
     train_dataloader = DataLoader(train_dataset, shuffle=False, batch_size=config.batch_size,
                                   collate_fn=train_dataset.collate_fn, sampler=sampler)
     dev_dataloader = DataLoader(dev_dataset, shuffle=False, batch_size=config.batch_size,
-                                collate_fn=dev_dataset.collate_fn)
+                                collate_fn=dev_dataset.collate_fn, sampler=sampler)
     test_dataloader = DataLoader(test_dataset, shuffle=False, batch_size=config.batch_size,
-                                 collate_fn=test_dataset.collate_fn)
+                                 collate_fn=test_dataset.collate_fn, sampler=sampler)
     if rank == 0: 
         logging.info("-------- Get Dataloader! --------")
 

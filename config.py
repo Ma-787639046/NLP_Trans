@@ -33,6 +33,7 @@ test_en_data_path = './data/corpus/test.en'
 dev_ch_data_path = './data/corpus/valid.zh'
 dev_en_data_path = './data/corpus/valid.en'
 model_path = './output/model.pth'
+dev_dir = './output/dev_temp'  # path for saving dev temp data
 log_path = './output/train.log'
 output_path = './output/output.txt'
 

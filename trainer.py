@@ -8,10 +8,12 @@ Thanks to Harvard Annoated Transformer in http://nlp.seas.harvard.edu/2018/04/03
 @data: 2020/12/24
 
 """
+import os
 import torch
 import torch.distributed as dist
 import logging
 import sacrebleu
+from torch.distributed.distributed_c10d import _get_global_rank
 from tqdm import tqdm
 
 import config
@@ -38,8 +40,9 @@ def run_epoch(dataloader, model, criterion, optimizer=None, scheduler=None):
     return total_loss / total_tokens
 
 
-def train(train_dataloader, dev_dataloader, model, criterion, optimizer, scheduler, global_rank):
+def train(train_dataloader, dev_dataloader, model, criterion, optimizer, scheduler, local_rank):
     """训练并保存模型"""
+    global_rank = config.node_rank * config.n_gpu + local_rank
     if global_rank == 0:
         logging.info("------ Start Training! ------")
     best_bleu_score = 0.0
@@ -61,14 +64,31 @@ def train(train_dataloader, dev_dataloader, model, criterion, optimizer, schedul
         model.train()
         train_loss = run_epoch(train_dataloader, model, criterion, optimizer, scheduler)
         loss.append(train_loss)
-
         logging.info(f'Epoch: {epoch:2d}, loss: {train_loss:.3f}')
-
-        # dist.barrier()  # synchronizes all processes
         
+        evaluate(dev_dataloader, model, local_rank, mode='dev')
+        dist.barrier()  # synchronizes all processes
+
         # 计算bleu分数
         if global_rank == 0:
             with torch.no_grad():
+                logging.info(f"[Epoch {epoch}] Validating...")
+                model.eval()
+                # Load all dev temp results
+                src = []
+                trg = []
+                res = []
+                for i in range(config.n_node * config.n_gpu):
+                    dev_result = torch.load(os.path.join(config.dev_dir,
+                                             f"dev_decode_global_rank_{i}"))
+                    assert i == dev_result["global_rank"], f"Loading dev results on global rank {i} cause error!"
+                    src.extend(dev_result["src"])
+                    trg.extend(dev_result["trg"])
+                    res.extend(dev_result["res"])
+                bleu_score = sacrebleu.corpus_bleu(res, [trg], tokenize='zh')
+                logging.info(f'Epoch: {epoch:2d} Dev Bleu Score: {bleu_score}')
+
+
                 # logging.info(f"[Epoch {epoch}] Validating...")
                 # model.eval()
                 # bleu_score = evaluate(dev_dataloader, model)
@@ -95,17 +115,10 @@ def train(train_dataloader, dev_dataloader, model, criterion, optimizer, schedul
                 }, config.model_path)
                 torch.save(model.state_dict(), config.model_path)
                 logging.info(f"[Epoch {epoch}] Module saved!")
-        
-        if global_rank == 0 and epoch == config.epoch_num:
-            with torch.no_grad():
-                logging.info(f"[Epoch {epoch}] Validating...")
-                model.eval()
-                bleu_score = evaluate(dev_dataloader, model)
-                logging.info(f'Epoch: {epoch:2d}, loss: {train_loss:.3f}, Bleu Score: {bleu_score}')
 
-        # dist.barrier()  # synchronizes all processes
+        dist.barrier()  # synchronizes all processes
 
-def evaluate(data, model, mode='dev'):
+def evaluate(data, model, rank, mode='dev'):
     """在data上用训练好的模型进行预测，打印模型翻译结果"""
     sp_chn = chinese_tokenizer_load()
     src = []
@@ -118,12 +131,21 @@ def evaluate(data, model, mode='dev'):
             src_mask = (batch.src != 0).unsqueeze(-2)
             decode_result, _ = beam_search(model.module, batch.src, src_mask, config.max_len,
                                             config.padding_idx, config.bos_idx, config.eos_idx,
-                                            config.beam_size, "cuda:0")
+                                            config.beam_size, rank)
             decode_result = [h[0] for h in decode_result]
             translation = [sp_chn.decode_ids(_s) for _s in decode_result]
             src.append(en_text)
             trg.extend(cn_sent)
             res.extend(translation)
+    dev_temp_path = os.path.join(config.dev_dir, f"dev_decode_global_rank_{config.node_rank * config.n_gpu + rank}")
+    torch.save({
+        "global_rank": config.node_rank * config.n_gpu + rank,
+        "src": src,
+        "trg": trg,
+        "res": res
+    }, dev_temp_path)
+    logging.info(f"{mode} dataset evaluation finished, saved at {dev_temp_path}")
+
     if mode == 'test':  # 如果是test集，输出“参考中文trg”和“模型预测的中文res”
         with open(config.output_path, "w") as fp:
             for i in range(len(trg)):
@@ -131,8 +153,8 @@ def evaluate(data, model, mode='dev'):
                 fp.write(f"English sentence: {src[i]}\n")
                 fp.write(f"Translation: {res[i]}\n")
                 fp.write(f"References:  {trg[i]}\n")
-    trg = [trg]
-    bleu = sacrebleu.corpus_bleu(res, trg, tokenize='zh')
+    
+    bleu = sacrebleu.corpus_bleu(res, [trg], tokenize='zh')
     return float(bleu.score)
 
 
