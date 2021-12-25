@@ -48,16 +48,16 @@ def run(rank):
     if rank == 0: 
         logging.info("-------- Dataset Build! --------")
 
-    sampler = DistributedSampler(train_dataset, num_replicas=world_size, rank=rank)
+    sampler_train = DistributedSampler(train_dataset, num_replicas=world_size, rank=rank)
+    sampler_dev = DistributedSampler(dev_dataset, num_replicas=world_size, rank=rank)
+    sampler_test = DistributedSampler(test_dataset, num_replicas=world_size, rank=rank)
 
     train_dataloader = DataLoader(train_dataset, shuffle=False, batch_size=config.batch_size,
-                                  collate_fn=train_dataset.collate_fn, sampler=sampler)
-    # dev_dataloader = DataLoader(dev_dataset, shuffle=False, batch_size=config.batch_size,
-    #                             collate_fn=dev_dataset.collate_fn)
+                                  collate_fn=train_dataset.collate_fn, sampler=sampler_train)
     dev_dataloader = DataLoader(dev_dataset, shuffle=False, batch_size=config.batch_size,
-                                collate_fn=dev_dataset.collate_fn, sampler=sampler)
+                                collate_fn=dev_dataset.collate_fn, sampler=sampler_dev)
     test_dataloader = DataLoader(test_dataset, shuffle=False, batch_size=config.batch_size,
-                                 collate_fn=test_dataset.collate_fn, sampler=sampler)
+                                 collate_fn=test_dataset.collate_fn, sampler=sampler_test)
     if rank == 0: 
         logging.info("-------- Get Dataloader! --------")
 
