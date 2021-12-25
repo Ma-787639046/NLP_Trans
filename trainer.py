@@ -94,7 +94,7 @@ def train(train_dataloader, dev_dataloader, model, criterion, optimizer, schedul
                     "scheduler": scheduler.state_dict()
                 }, config.model_path)
                 torch.save(model.state_dict(), config.model_path)
-                logging.info("[Epoch {epoch}] Module saved!")
+                logging.info(f"[Epoch {epoch}] Module saved!")
         
         if global_rank == 0 and epoch == config.epoch_num:
             with torch.no_grad():
