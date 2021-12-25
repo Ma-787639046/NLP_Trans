@@ -44,7 +44,13 @@ def train(train_dataloader, dev_dataloader, model, criterion, optimizer, schedul
         logging.info("------ Start Training! ------")
     best_bleu_score = 0.0
     early_stop = config.early_stop
-    for epoch in range(1, config.epoch_num + 1):
+    if config.continue_training:
+        epoch_start = 20
+        model.load_state_dict(config.model_path)
+        logging.info(f"Model at {config.model_path} Loaded. Continue Training from epoch {epoch_start} to {config.epoch_num}")
+    else:
+        epoch_start = 1
+    for epoch in range(epoch_start, config.epoch_num + 1):
         # 模型训练
         logging.info(f"[Epoch {epoch}/ Rank {global_rank}] Trainging...")
         model.train()
@@ -74,6 +80,12 @@ def train(train_dataloader, dev_dataloader, model, criterion, optimizer, schedul
                 # if early_stop == 0:
                 #     logging.info("-------- Early Stop! --------")
                 #     break
+                torch.save({
+                    "epoch": epoch,
+                    "model": model.state_dict(),
+                    "optimizer": optimizer.state_dict(),
+                    "scheduler": scheduler.state_dict()
+                }, config.model_path)
                 torch.save(model.state_dict(), config.model_path)
                 logging.info("[Epoch {epoch}] Module saved!")
         

@@ -13,9 +13,10 @@ eos_idx = 3
 src_vocab_size = 32000
 tgt_vocab_size = 32000
 batch_size = 10
-epoch_num = 20
+epoch_num = 40
 early_stop = 5
 lr = 3e-4
+continue_training = True
 
 # greed decode的最大句子长度
 max_len = 60
