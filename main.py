@@ -53,9 +53,11 @@ def run(rank):
     train_dataloader = DataLoader(train_dataset, shuffle=False, batch_size=config.batch_size,
                                   collate_fn=train_dataset.collate_fn, sampler=sampler)
     dev_dataloader = DataLoader(dev_dataset, shuffle=False, batch_size=config.batch_size,
-                                collate_fn=dev_dataset.collate_fn, sampler=sampler)
-    test_dataloader = DataLoader(test_dataset, shuffle=False, batch_size=config.batch_size,
-                                 collate_fn=test_dataset.collate_fn, sampler=sampler)
+                                collate_fn=dev_dataset.collate_fn)
+    # dev_dataloader = DataLoader(dev_dataset, shuffle=False, batch_size=config.batch_size,
+    #                             collate_fn=dev_dataset.collate_fn, sampler=sampler)
+    # test_dataloader = DataLoader(test_dataset, shuffle=False, batch_size=config.batch_size,
+    #                              collate_fn=test_dataset.collate_fn, sampler=sampler)
     if rank == 0: 
         logging.info("-------- Get Dataloader! --------")
 
