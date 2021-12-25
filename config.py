@@ -16,7 +16,7 @@ batch_size = 10
 epoch_num = 40
 early_stop = 5
 lr = 3e-4
-continue_training = True
+continue_training = False
 
 # greed decode的最大句子长度
 max_len = 60

@@ -44,9 +44,14 @@ def train(train_dataloader, dev_dataloader, model, criterion, optimizer, schedul
         logging.info("------ Start Training! ------")
     best_bleu_score = 0.0
     early_stop = config.early_stop
+    loss = []
     if config.continue_training:
-        epoch_start = 20
-        model.load_state_dict(config.model_path)
+        checkpoint = torch.load(config.model_path)
+        epoch_start = checkpoint["epoch"]
+        loss = checkpoint["loss"]
+        model.load_state_dict(checkpoint["model"])
+        optimizer.load_state_dict(checkpoint["optimizer"])
+        scheduler.load_state_dict(checkpoint["scheduler"])
         logging.info(f"Model at {config.model_path} Loaded. Continue Training from epoch {epoch_start} to {config.epoch_num}")
     else:
         epoch_start = 1
@@ -55,6 +60,7 @@ def train(train_dataloader, dev_dataloader, model, criterion, optimizer, schedul
         logging.info(f"[Epoch {epoch}/ Rank {global_rank}] Trainging...")
         model.train()
         train_loss = run_epoch(train_dataloader, model, criterion, optimizer, scheduler)
+        loss.append(train_loss)
 
         logging.info(f'Epoch: {epoch:2d}, loss: {train_loss:.3f}')
 
@@ -82,6 +88,7 @@ def train(train_dataloader, dev_dataloader, model, criterion, optimizer, schedul
                 #     break
                 torch.save({
                     "epoch": epoch,
+                    "loss": loss,
                     "model": model.state_dict(),
                     "optimizer": optimizer.state_dict(),
                     "scheduler": scheduler.state_dict()
