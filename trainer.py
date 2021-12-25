@@ -135,10 +135,10 @@ def test(test_dataloader, model, local_rank, args):
     global_rank = args.node_rank * args.n_gpu + local_rank
     with torch.no_grad():
         # 加载模型
-        checkpoint = torch.load(args.model_path)
+        checkpoint = torch.load(args.model_path_best)
         model.load_state_dict(checkpoint["model"])
         model.eval()
-        logging.info(f"Rank {global_rank}: Model at {args.model_path} Loaded. Start testing...")
+        logging.info(f"Rank {global_rank}: Model at {args.model_path_best} Loaded. Start testing...")
         evaluate(test_dataloader, model, local_rank, mode='test', args=args)
         dist.barrier()  # synchronizes all processes
         if global_rank == 0:

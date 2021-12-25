@@ -27,7 +27,7 @@ from trainer import train, test
 from preprocessing import MTDataset, english_tokenizer_load
 from model import transformer_encoder_decoder_model
 
-def run(rank, *tuples):
+def run_train(rank, *tuples):
     args = tuples[0]    # mp.spawm() pass a tuple (args, ) to train() function, so args = tuples[0]
     world_size = args.n_gpu * args.n_node
     global_rank = args.node_rank * args.n_gpu + rank
@@ -45,20 +45,16 @@ def run(rank, *tuples):
 
     train_dataset = MTDataset(ch_data_path=args.train_ch_data_path, en_data_path=args.train_en_data_path, rank=rank)
     dev_dataset = MTDataset(ch_data_path=args.dev_ch_data_path, en_data_path=args.dev_en_data_path, rank=rank)
-    test_dataset = MTDataset(ch_data_path=args.test_ch_data_path, en_data_path=args.test_en_data_path, rank=rank)
     if rank == 0: 
         logging.info(f"-------- Dataset Build! --------")
 
     sampler_train = DistributedSampler(train_dataset, num_replicas=world_size, rank=global_rank)
     sampler_dev = DistributedSampler(dev_dataset, num_replicas=world_size, rank=global_rank)
-    sampler_test = DistributedSampler(test_dataset, num_replicas=world_size, rank=global_rank)
 
     train_dataloader = DataLoader(train_dataset, shuffle=False, batch_size=args.batch_size,
                                   collate_fn=train_dataset.collate_fn, sampler=sampler_train)
     dev_dataloader = DataLoader(dev_dataset, shuffle=False, batch_size=args.batch_size,
                                 collate_fn=dev_dataset.collate_fn, sampler=sampler_dev)
-    test_dataloader = DataLoader(test_dataset, shuffle=False, batch_size=args.batch_size,
-                                 collate_fn=test_dataset.collate_fn, sampler=sampler_test)
     if rank == 0: 
         logging.info("-------- Get Dataloader! --------")
 
@@ -97,6 +93,56 @@ def run(rank, *tuples):
 
     train(train_dataloader, dev_dataloader, model, criterion, optimizer, scheduler, rank, args)
     # test(test_dataloader, model, rank, args)
+    dist.destroy_process_group()
+
+def run_test(rank, *tuples):
+    args = tuples[0]    # mp.spawm() pass a tuple (args, ) to train() function, so args = tuples[0]
+    world_size = args.n_gpu * args.n_node
+    global_rank = args.node_rank * args.n_gpu + rank
+    if global_rank == 0:
+        utils.set_logger(args.log_path)
+        if not os.path.exists(args.temp_dir):
+            os.makedirs(args.temp_dir)
+    # preparing the distributed env
+    # using nccl for distributed training
+    dist.init_process_group(
+        backend='nccl',
+        init_method='env://',
+        world_size=world_size,
+        rank=global_rank)
+
+    test_dataset = MTDataset(ch_data_path=args.test_ch_data_path, en_data_path=args.test_en_data_path, rank=rank)
+    if rank == 0: 
+        logging.info(f"-------- Dataset Build! --------")
+
+    sampler_test = DistributedSampler(test_dataset, num_replicas=world_size, rank=global_rank)
+    test_dataloader = DataLoader(test_dataset, shuffle=False, batch_size=args.batch_size,
+                                 collate_fn=test_dataset.collate_fn, sampler=sampler_test)
+    if rank == 0: 
+        logging.info("-------- Get Dataloader! --------")
+
+    # 初始化模型
+    model = transformer_encoder_decoder_model(args.src_vocab_size, args.tgt_vocab_size, args.n_layers,
+                       args.d_model, args.d_ff, args.n_heads, args.dropout)
+    if torch.cuda.is_available():    # Move model to GPU:rank
+        model.cuda(rank)
+
+    if rank == 0: 
+        logging.info("finish Loading model")
+    
+    model = DDP(
+        model,
+        device_ids=[rank],
+        output_device=rank,
+        find_unused_parameters=False
+    )
+
+    dist.barrier()  # synchronizes all processes
+    if rank == 0:
+        logging.info("Finish initing all processors.")
+
+    test(test_dataloader, model, rank, args)
+
     dist.destroy_process_group()
 
 
@@ -189,5 +235,6 @@ if __name__ == "__main__":
     os.environ['MASTER_ADDR'] = args.MASTER_ADDR
     os.environ['MASTER_PORT'] = args.MASTER_PORT
 
-    mp.spawn(run, args=(args, ), nprocs=args.n_gpu)
+    # mp.spawn(run_train, args=(args, ), nprocs=args.n_gpu)
+    mp.spawn(run_test, args=(args, ), nprocs=args.n_gpu)
     # translate_example()
