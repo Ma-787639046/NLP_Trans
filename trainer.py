@@ -43,8 +43,8 @@ def train(train_dataloader, dev_dataloader, model, criterion, optimizer, schedul
     global_rank = args.node_rank * args.n_gpu + local_rank
     if local_rank == 0:
         logging.info("------ Start Training! ------")
-    best_bleu_score = 0.0
-    early_stop = args.early_stop
+    # best_bleu_score = 0.0
+    # early_stop = args.early_stop
     loss = []
     if args.continue_training:
         checkpoint = torch.load(args.model_path)
