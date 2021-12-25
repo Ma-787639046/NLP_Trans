@@ -83,25 +83,6 @@ def train(train_dataloader, dev_dataloader, model, criterion, optimizer, schedul
                     res.extend(result["res"])
                 bleu_score = sacrebleu.corpus_bleu(res, [trg], tokenize='zh')
                 logging.info(f'Epoch: {epoch:2d} Dev Bleu Score: {bleu_score}')
-
-
-                # logging.info(f"[Epoch {epoch}] Validating...")
-                # model.eval()
-                # bleu_score = evaluate(dev_dataloader, model)
-                # logging.info(f'Epoch: {epoch:2d}, loss: {train_loss:.3f}, Bleu Score: {bleu_score}')
-
-                # # 基于bleu分数，设置early stop
-                # if bleu_score > best_bleu_score:
-                #     torch.save(model.state_dict(), args.model_path)
-                #     best_bleu_score = bleu_score
-                #     early_stop = args.early_stop
-                #     logging.info("-------- Save Best Model! --------")
-                # else:
-                #     early_stop -= 1
-                #     logging.info("Early Stop Left: {}".format(early_stop))
-                # if early_stop == 0:
-                #     logging.info("-------- Early Stop! --------")
-                #     break
                 torch.save({
                     "epoch": epoch,
                     "loss": loss,
