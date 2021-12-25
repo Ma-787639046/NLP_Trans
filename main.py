@@ -23,7 +23,7 @@ import torch.distributed as dist
 from torch.nn.parallel import DistributedDataParallel as DDP
 from torch.utils.tensorboard import SummaryWriter
 
-from trainer import train
+from trainer import train, test
 from preprocessing import MTDataset, english_tokenizer_load
 from model import transformer_encoder_decoder_model
 
@@ -92,8 +92,8 @@ def run(rank):
         total_steps
     )
 
-    train(train_dataloader, dev_dataloader, model, criterion, optimizer, scheduler, global_rank)
-    # test(test_dataloader, model, criterion)
+    # train(train_dataloader, dev_dataloader, model, criterion, optimizer, scheduler, rank)
+    test(test_dataloader, model, rank)
     dist.destroy_process_group()
 
 
