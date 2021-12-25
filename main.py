@@ -32,8 +32,8 @@ def run(rank):
     world_size = config.n_gpu * config.n_node
     global_rank = config.node_rank * config.n_gpu + rank
     if rank == 0:
-        if not os.path.exists(config.dev_dir):
-            os.makedirs(config.dev_dir)
+        if not os.path.exists(config.temp_dir):
+            os.makedirs(config.temp_dir)
     # preparing the distributed env
     # using nccl for distributed training
     dist.init_process_group(
