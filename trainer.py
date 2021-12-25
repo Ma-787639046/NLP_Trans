@@ -158,8 +158,7 @@ def test(test_dataloader, model, local_rank, args):
                 logging.info(f'Test Bleu Score: {bleu_score}')
                 with open(args.output_path, "w") as fp:
                     for i in range(len(trg)):
-                        fp.write(f"idx: {i}\n")
-                        fp.write(f"English sentence: {src[i]}\n")
+                        fp.write(f"[{i}]English sentence: {src[i].strip()}\n")
                         fp.write(f"Translation: {res[i]}\n")
                         fp.write(f"References:  {trg[i]}\n")
         dist.barrier()  # synchronizes all processes
