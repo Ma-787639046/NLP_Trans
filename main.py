@@ -92,8 +92,8 @@ def run(rank):
         total_steps
     )
 
-    # train(train_dataloader, dev_dataloader, model, criterion, optimizer, scheduler, rank)
-    test(test_dataloader, model, rank)
+    train(train_dataloader, dev_dataloader, model, criterion, optimizer, scheduler, rank)
+    # test(test_dataloader, model, rank)
     dist.destroy_process_group()
 
 

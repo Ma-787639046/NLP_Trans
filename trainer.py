@@ -111,7 +111,6 @@ def train(train_dataloader, dev_dataloader, model, criterion, optimizer, schedul
                     "optimizer": optimizer.state_dict(),
                     "scheduler": scheduler.state_dict()
                 }, config.model_path)
-                torch.save(model.state_dict(), config.model_path)
                 logging.info(f"[Epoch {epoch}] Module saved!")
 
         dist.barrier()  # synchronizes all processes
