@@ -19,4 +19,4 @@ bin-release/
 output.log
 output1.log
 __pycache__/
-output/
+output/*.pth
